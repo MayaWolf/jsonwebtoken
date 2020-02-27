@@ -49,7 +49,7 @@ pub(crate) struct PemEncodedKey {
 
 impl PemEncodedKey {
     /// Read the PEM file for later key use
-    pub fn new(input: &[u8]) -> Result<PemEncodedKey> {
+    pub fn new(input: Vec<u8>) -> Result<PemEncodedKey> {
         match pem::parse(input) {
             Ok(content) => {
                 let pem_contents = content.contents;
@@ -116,34 +116,34 @@ impl PemEncodedKey {
     }
 
     /// Can only be PKCS8
-    pub fn as_ec_private_key(&self) -> Result<&[u8]> {
+    pub fn into_ec_private_key(self) -> Result<Vec<u8>> {
         match self.standard {
             Standard::Pkcs1 => Err(ErrorKind::InvalidKeyFormat.into()),
             Standard::Pkcs8 => match self.pem_type {
-                PemType::EcPrivate => Ok(self.content.as_slice()),
+                PemType::EcPrivate => Ok(self.content),
                 _ => Err(ErrorKind::InvalidKeyFormat.into()),
             },
         }
     }
 
     /// Can only be PKCS8
-    pub fn as_ec_public_key(&self) -> Result<&[u8]> {
+    pub fn into_ec_public_key(self) -> Result<Vec<u8>> {
         match self.standard {
             Standard::Pkcs1 => Err(ErrorKind::InvalidKeyFormat.into()),
             Standard::Pkcs8 => match self.pem_type {
-                PemType::EcPublic => extract_first_bitstring(&self.asn1),
+                PemType::EcPublic => extract_first_bitstring(self.asn1),
                 _ => Err(ErrorKind::InvalidKeyFormat.into()),
             },
         }
     }
 
     /// Can be PKCS1 or PKCS8
-    pub fn as_rsa_key(&self) -> Result<&[u8]> {
+    pub fn into_rsa_key(self) -> Result<Vec<u8>> {
         match self.standard {
-            Standard::Pkcs1 => Ok(self.content.as_slice()),
+            Standard::Pkcs1 => Ok(self.content),
             Standard::Pkcs8 => match self.pem_type {
-                PemType::RsaPrivate => extract_first_bitstring(&self.asn1),
-                PemType::RsaPublic => extract_first_bitstring(&self.asn1),
+                PemType::RsaPrivate => extract_first_bitstring(self.asn1),
+                PemType::RsaPublic => extract_first_bitstring(self.asn1),
                 _ => Err(ErrorKind::InvalidKeyFormat.into()),
             },
         }
@@ -155,8 +155,8 @@ impl PemEncodedKey {
 // And the DER contents of an RSA key
 // Though PKCS#11 keys shouldn't have anything else.
 // It will get confusing with certificates.
-fn extract_first_bitstring(asn1: &[simple_asn1::ASN1Block]) -> Result<&[u8]> {
-    for asn1_entry in asn1.iter() {
+fn extract_first_bitstring(asn1: Vec<simple_asn1::ASN1Block>) -> Result<Vec<u8>> {
+    for asn1_entry in asn1.into_iter() {
         match asn1_entry {
             simple_asn1::ASN1Block::Sequence(_, entries) => {
                 if let Ok(result) = extract_first_bitstring(entries) {
@@ -164,10 +164,10 @@ fn extract_first_bitstring(asn1: &[simple_asn1::ASN1Block]) -> Result<&[u8]> {
                 }
             }
             simple_asn1::ASN1Block::BitString(_, _, value) => {
-                return Ok(value.as_ref());
+                return Ok(value);
             }
             simple_asn1::ASN1Block::OctetString(_, value) => {
-                return Ok(value.as_ref());
+                return Ok(value);
             }
             _ => (),
         }

@@ -17,40 +17,40 @@ pub struct EncodingKey {
 
 impl EncodingKey {
     /// If you're using a HMAC secret that is not base64, use that.
-    pub fn from_secret(secret: &[u8]) -> Self {
-        EncodingKey { family: AlgorithmFamily::Hmac, content: secret.to_vec() }
+    pub fn from_secret(secret: Vec<u8>) -> Self {
+        EncodingKey { family: AlgorithmFamily::Hmac, content: secret }
     }
 
     /// If you have a base64 HMAC secret, use that.
-    pub fn from_base64_secret(secret: &str) -> Result<Self> {
+    pub fn from_base64_secret(secret: String) -> Result<Self> {
         let out = base64::decode(&secret)?;
         Ok(EncodingKey { family: AlgorithmFamily::Hmac, content: out })
     }
 
     /// If you are loading a RSA key from a .pem file.
     /// This errors if the key is not a valid RSA key.
-    pub fn from_rsa_pem(key: &[u8]) -> Result<Self> {
+    pub fn from_rsa_pem(key: Vec<u8>) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
-        let content = pem_key.as_rsa_key()?;
-        Ok(EncodingKey { family: AlgorithmFamily::Rsa, content: content.to_vec() })
+        let content = pem_key.into_rsa_key()?;
+        Ok(EncodingKey { family: AlgorithmFamily::Rsa, content })
     }
 
     /// If you are loading a ECDSA key from a .pem file
     /// This errors if the key is not a valid private EC key
-    pub fn from_ec_pem(key: &[u8]) -> Result<Self> {
+    pub fn from_ec_pem(key: Vec<u8>) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
-        let content = pem_key.as_ec_private_key()?;
-        Ok(EncodingKey { family: AlgorithmFamily::Ec, content: content.to_vec() })
+        let content = pem_key.into_ec_private_key()?;
+        Ok(EncodingKey { family: AlgorithmFamily::Ec, content })
     }
 
     /// If you know what you're doing and have the DER-encoded key, for RSA only
-    pub fn from_rsa_der(der: &[u8]) -> Self {
-        EncodingKey { family: AlgorithmFamily::Rsa, content: der.to_vec() }
+    pub fn from_rsa_der(der: Vec<u8>) -> Self {
+        EncodingKey { family: AlgorithmFamily::Rsa, content: der }
     }
 
     /// If you know what you're doing and have the DER-encoded key, for ECDSA
-    pub fn from_ec_der(der: &[u8]) -> Self {
-        EncodingKey { family: AlgorithmFamily::Ec, content: der.to_vec() }
+    pub fn from_ec_der(der: Vec<u8>) -> Self {
+        EncodingKey { family: AlgorithmFamily::Ec, content: der }
     }
 
     pub(crate) fn inner(&self) -> &[u8] {

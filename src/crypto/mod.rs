@@ -71,7 +71,7 @@ pub fn verify(
     match algorithm {
         Algorithm::HS256 | Algorithm::HS384 | Algorithm::HS512 => {
             // we just re-sign the message with the key and compare if they are equal
-            let signed = sign(message, &EncodingKey::from_secret(key.as_bytes()), algorithm)?;
+            let signed = sign(message, &EncodingKey::from_secret(key.as_bytes().to_vec()), algorithm)?;
             Ok(verify_slices_are_equal(signature.as_ref(), signed.as_ref()).is_ok())
         }
         Algorithm::ES256 | Algorithm::ES384 => verify_ring(
